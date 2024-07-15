@@ -1,0 +1,77 @@
+steps:
+  - name: node
+    entrypoint: npm
+    args: ['run', 'create-env']
+    env:
+      - 'NEXT_PUBLIC_API_ENDPOINT=${_NEXT_PUBLIC_API_ENDPOINT}'
+      - 'NEXT_PUBLIC_ENV=${_NEXT_PUBLIC_ENV}'
+      - 'NEXT_PUBLIC_FILE_SERVER_ENDPOINT=${_NEXT_PUBLIC_FILE_SERVER_ENDPOINT}'
+      - 'NEXT_PUBLIC_ETHEREUM_QUICKNODE_URL=${_NEXT_PUBLIC_ETHEREUM_QUICKNODE_URL}'
+      - 'NEXT_PUBLIC_POLYGON_QUICKNODE_URL=${_NEXT_PUBLIC_POLYGON_QUICKNODE_URL}'
+      - 'NEXT_PUBLIC_TOKEN_GATED_FILE_ENDPOINT=${_NEXT_PUBLIC_TOKEN_GATED_FILE_ENDPOINT}'
+      - 'NEXT_PUBLIC_PINATA=${_NEXT_PUBLIC_PINATA}'
+      - 'NEXT_PUBLIC_SENTRY_DSN=${_NEXT_PUBLIC_SENTRY_DSN}'
+      - 'NEXT_PUBLIC_WEB_SOKET=${_NEXT_PUBLIC_WEB_SOKET}'
+      - 'NEXT_PUBLIC_WEBHOOK_URL_ETHEREUM=${_NEXT_PUBLIC_WEBHOOK_URL_ETHEREUM}'
+      - 'NEXT_PUBLIC_WEBHOOK_URL_POLYGON=${_NEXT_PUBLIC_WEBHOOK_URL_POLYGON}'
+      - 'NEXT_PUBLIC_MOONPAY_API=${_NEXT_PUBLIC_MOONPAY_API}'
+      - 'NEXT_PUBLIC_MOONPAY_KEY=${_NEXT_PUBLIC_MOONPAY_KEY}'
+      - 'NEXT_PUBLIC_MOONPAY_GCP=${_NEXT_PUBLIC_MOONPAY_GCP}'
+      - 'NEXT_PUBLIC_GA_MEASUREMENT_ID=${_NEXT_PUBLIC_GA_MEASUREMENT_ID}'
+      - 'NEXT_PUBLIC_BNB_QUICKNODE_URL=${_NEXT_PUBLIC_BNB_QUICKNODE_URL}'
+      - 'NEXT_PUBLIC_WEBHOOK_URL_BNB=${_NEXT_PUBLIC_WEBHOOK_URL_BNB}'
+      - 'NEXT_PUBLIC_ETHEREUM_NFT_ALCHEMY_URL=${_NEXT_PUBLIC_ETHEREUM_NFT_ALCHEMY_URL}'
+      - 'NEXT_PUBLIC_POLYGON_NFT_ALCHEMY_URL=${_NEXT_PUBLIC_POLYGON_NFT_ALCHEMY_URL}'
+      - 'NEXT_PUBLIC_SLACK_WEBHOOK_URL={_NEXT_PUBLIC_SLACK_WEBHOOK_URL}'
+      - 'NEXT_PUBLIC_MAINTENANCE_MODE_API=${_NEXT_PUBLIC_MAINTENANCE_MODE_API}'
+      - 'NEXT_PUBLIC_GASLESS_ENABLE=${_NEXT_PUBLIC_GASLESS_ENABLE}'
+      - 'NEXT_PUBLIC_GOOGLE_TAG_EY=${_NEXT_PUBLIC_GOOGLE_TAG_KEY}'
+      - 'NEXT_PUBLIC_POLYGON_SCAN=${_NEXT_PUBLIC_POLYGON_SCAN}'
+      - 'NEXT_PUBLIC_BNB_SCAN=${_NEXT_PUBLIC_BNB_SCAN}'
+      - 'NEXT_PUBLIC_ETHEREUM_SCAN=${_NEXT_PUBLIC_ETHEREUM_SCAN}'
+      - 'NEXT_PUBLIC_MAGIC_API_KEY=${_NEXT_PUBLIC_MAGIC_API_KEY}'
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - '-t'
+      - '$_GCR_HOSTNAME/$PROJECT_ID/$_SERVICE_NAME:$COMMIT_SHA'
+      - .
+      - '-f'
+      - Dockerfile
+    id: Build
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - '$_GCR_HOSTNAME/$PROJECT_ID/$_SERVICE_NAME:$COMMIT_SHA'
+    id: Push
+  - name: gcr.io/cloud-builders/kubectl
+    env:
+      - CLOUDSDK_COMPUTE_ZONE=us-central1-c
+      - CLOUDSDK_CONTAINER_CLUSTER=web2-frontend
+    args:
+      - apply
+      - '-f'
+      - deployment/prod/deployment.yml
+  - name: gcr.io/cloud-builders/kubectl
+    env:
+      - CLOUDSDK_COMPUTE_ZONE=us-central1-c
+      - CLOUDSDK_CONTAINER_CLUSTER=web2-frontend
+    args:
+      - set
+      - image
+      - deployment/web2-frontend
+      - 'decir-webapp=$_GCR_HOSTNAME/$PROJECT_ID/$_SERVICE_NAME:$COMMIT_SHA'
+images:
+  - '$_GCR_HOSTNAME/$PROJECT_ID/$_SERVICE_NAME:$COMMIT_SHA'
+options:
+  substitutionOption: ALLOW_LOOSE
+substitutions:
+  _TRIGGER_ID: 55ab0f5a-731d-49f8-bd37-86e01b29b856
+  _SERVICE_NAME: decir-webapp
+  _DEPLOY_REGION: us-central1-c
+  _GCR_HOSTNAME: gcr.io
+  _PLATFORM: managed
+  _LABELS: gcp-trigger-id=55ab0f5a-731d-49f8-bd37-86e01b29b856
+tags:
+  - creabo-web2-frontend
